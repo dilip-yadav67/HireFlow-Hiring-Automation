@@ -166,5 +166,13 @@ app.get("/api/analytics", auth, wrap(async (q, r) => { const apps = await App.fi
   const avg = k => { const v = apps.filter(a => a[k] != null); return v.length ? Math.round(v.reduce((n, a) => n + a[k], 0) / v.length) : 0; };
   r.json({ total: apps.length, byStatus: by, avgResume: avg("score"), avgInterview: avg("interviewScore"), jobs: Object.values(jobs).map(j => ({ ...j, avg: Math.round(j.sum / j.applications) })) }); }));
 
+app.patch("/api/me", auth, wrap(async (q, r) => { const name = String(q.body.name || "").trim().slice(0, 60);
+  if (name.length < 2) return r.status(400).json({ error: "Enter a name with at least 2 characters." });
+  const u = await User.findById(q.uid); u.name = name; await u.save(); r.json({ name: u.name }); }));
+app.post("/api/me/password", auth, wrap(async (q, r) => { const u = await User.findById(q.uid);
+  if (!(await bcrypt.compare(q.body.current || "", u.password))) return r.status(400).json({ error: "Current password is wrong." });
+  if ((q.body.next || "").length < 6) return r.status(400).json({ error: "New password needs 6 or more characters." });
+  u.password = await bcrypt.hash(q.body.next, 10); await u.save(); r.json({ ok: true }); }));
+
 await mongoose.connect(process.env.MONGODB_URI);
 app.listen(process.env.PORT || 4000, () => console.log("API ready"));
