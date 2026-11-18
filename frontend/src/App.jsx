@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
-import { LayoutGrid, Users, Briefcase, Sparkles, CalendarDays, Workflow, BarChart3, Settings, Search, Bell, Menu, X, Bot, Send, Plus } from "lucide-react";
-import Pages from "./Pages.jsx"; import { SearchBox, BellBtn } from "./Extra.jsx"; import Interview from "./Interview.jsx"; import Apply from "./Apply.jsx";
+import { LayoutGrid, Users, Briefcase, Sparkles, CalendarDays, Workflow, BarChart3, Settings, Search, Bell, Menu, X, Bot, Send, Plus, LogOut } from "lucide-react";
+import Pages from "./Pages.jsx"; import { SearchBox, BellBtn, UserMenu } from "./Extra.jsx"; import Interview from "./Interview.jsx"; import Apply from "./Apply.jsx";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from "recharts";
 const API = import.meta.env.VITE_API_URL || "http://localhost:4000";
 export async function api(path, opt = {}) {
@@ -9,6 +9,7 @@ export async function api(path, opt = {}) {
   const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || "Something went wrong."); return d;
 }
 const NAV = [["Dashboard", LayoutGrid], ["Candidates", Users], ["Jobs", Briefcase], ["AI Screening", Sparkles], ["Interviews", CalendarDays], ["Workflows", Workflow], ["Analytics", BarChart3], ["Settings", Settings]];
+const Credit = ({ light }) => <div className={"credit" + (light ? " light" : "")}><span className="dylogo">DY</span><div><small>BUILT BY</small><b>DILIP YADAV</b></div></div>;
 const fmt = n => (n ?? 0).toLocaleString("en-US");
 
 function Auth({ onDone }) {
@@ -25,6 +26,7 @@ function Auth({ onDone }) {
     {err && <p className="err">{err}</p>}
     <button className="btn" disabled={busy}>{busy ? "Please wait..." : mode === "login" ? "Log in" : "Create account"}</button>
     <p className="swap" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "New here? Create an account" : "Have an account? Log in"}</p>
+    <Credit light />
   </form></div>;
 }
 
@@ -55,6 +57,7 @@ function Assistant() {
 
 function Dashboard({ onLogout }) {
   const [page, setPage] = useState("Dashboard"), [filter, setFilter] = useState(""), [rev, setRev] = useState(0), [d, setD] = useState(null), [err, setErr] = useState(""), [nav, setNav] = useState(false), [job, setJob] = useState(false), [ai, setAi] = useState(false);
+  const [, bump] = useState(0); useEffect(() => { const f = () => bump(n => n + 1); addEventListener("hf-profile", f); return () => removeEventListener("hf-profile", f); }, []);
   const name = localStorage.getItem("hf_name") || "there", first = name.split(" ")[0];
   const load = useCallback(() => api("/api/dashboard").then(setD).catch(x => x.message.includes("log in") ? onLogout() : setErr(x.message)), [onLogout]);
   useEffect(() => { if (page === "Dashboard") load(); }, [load, page]);
@@ -63,10 +66,10 @@ function Dashboard({ onLogout }) {
   return <div className="app">
     <nav className={"side " + (nav ? "open" : "")}><div className="brand"><span className="logo">H</span><div><b>HireFlow</b><small>Smart Hiring. Faster.</small></div><X className="close" onClick={() => setNav(false)} /></div>
       {NAV.map(([n, I]) => <a key={n} className={n === page ? "act" : ""} onClick={() => { setPage(n); setFilter(""); setNav(false); }}><I size={20} />{n}</a>)}
-      <a className="out" onClick={onLogout}>Log out</a></nav>
+      <Credit /><button className="logout" onClick={onLogout}><LogOut size={18} />Log out</button></nav>
     <main><header><button className="burger" onClick={() => setNav(true)} aria-label="Menu"><Menu /></button>
       <SearchBox onPick={(p, t) => { setPage(p); setFilter(t); }} />
-      <BellBtn /><span className="av">{first[0]}</span><b className="uname">{name}</b></header>
+      <BellBtn /><UserMenu name={name} onSettings={() => { setPage("Settings"); setFilter(""); }} onLogout={onLogout} /></header>
       {page !== "Dashboard" ? <Pages key={page + rev} page={page} onNewJob={() => setJob(true)} filter={filter} onClear={() => setFilter("")} /> : <>
       <div className="hello"><div><h1>Welcome back, {first}! 👋</h1><p>Let's find the best talent with the power of AI.</p></div><span className="chip">Last 30 Days</span></div>
       {err && <p className="err">{err === "Failed to fetch" ? "Server is starting up. Refresh in about a minute." : err}</p>}
